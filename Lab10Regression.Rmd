@@ -1,0 +1,95 @@
+---
+title: 'Lab 10: Regression'
+author: "IE 0015 Information Systems Engineering"
+date: "March 29/30, 2018"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+This lab will use the Titanic data. You should modify the `read.csv` function call to correspond to your system.
+
+```{r loadlibraries,  warning=FALSE}
+options(digits = 3, scipen=4)
+library(ggplot2, quietly = TRUE, warn.conflicts = FALSE)
+library(dplyr, quietly = TRUE, warn.conflicts = FALSE)
+library(magrittr)
+library(modelr, quietly = TRUE, warn.conflicts = FALSE)
+
+titanic <- read.csv("~/Downloads/titanic3.csv",
+                    header=TRUE, sep=",")
+# From Lab on working with characters and regular expressions
+getTitle <- function(data) {
+  title.dot.start <- regexpr("\\,[A-Z ]*\\.", data$name, TRUE)
+  title.comma.end <- title.dot.start+ attr(title.dot.start, "match.length")
+  data$Title <- substr(data$name, title.dot.start+2, title.comma.end-1)
+  return (data$Title)
+}  
+titanic$Title <- getTitle(titanic)
+unique(titanic$Title)  
+```
+
+
+# 1. Multiple linear regression (4 pts)
+
+You think that the age is related to the following:
+
+  i.  Sex
+  ii.  Pclass
+
+a.  Remove lines in the data that do not have an age
+b.  Develop a multiple linear regression model for the age based on these characteristics.
+c.  Display the summary and the analysis of variance tables for this model. 
+d.  Display diagnostics plots. Discuss the assumptions of regression models.
+e.  Do you think this is an adequate model?
+
+```{r}
+titanic <- filter(titanic, age > 0) #removes lines with no age
+regresTitanic <- lm(age ~ sex + pclass, data=titanic)
+summary(regresTitanic)
+anova(regresTitanic)
+plot(regresTitanic)
+```
+D.) NORMAL Q-Q IS SUPOSED TO BE LINEAR IN THE MIDDLE
+    Y SHOULD BE A COMBINATION OF MU AND RANDOM ERROR
+    RANDOM ERROR SHOULD BE RANDOMLY DISTRIBUTED
+    
+E.) THIS IS AN ACCURATE MODEL BECAUSE THE ERRORS ARE RANDOMLY DISTRIBUTED AND      THE PLOT Q-Q SHOWS THAT OUR PREDICTIONS ARE WELL ALIGNED WITH THE ACTUAL       DATA.
+  
+# 2. Adding to the model. (4 pts)
+
+There are two variables that are generally present but are not currently in the model: fare and Title. 
+
+a. Plot the residuals of your model against each of these and choose which value should be added to the model.
+b. Create the linear regression model that adds the new variable and print the summary, anova table, and diagnostic plots.
+c. Compare the new model to the original.
+
+```{R}
+ggplot(titanic, aes(x = regresTitanic$residuals, y=titanic$fare)) + geom_point()
+
+ggplot(titanic, aes(x = regresTitanic$residuals, y=titanic$Title)) + geom_point()
+
+regres2Titanic <- lm(age ~ sex + pclass + Title, data=titanic)
+summary(regres2Titanic)
+anova(regres2Titanic)
+plot(regres2Titanic)
+```
+THE NEW MODEL LOOKS SLIGHTLY WORSE THAN THE OTHERS AS THE Q-Q GRAPH DEVIATES SIGNIFICANTLY FROM THE LINE WITH SLOPE 1. ALSO, THE RESIDUAL GRAPHS HAVE LINES WHERE THE SLOPE IS NOT A CONSTANT 0.The p-value for the Title is pretty small so the Title category is significant.
+
+3.  Use the final model from problem 2 to predict the ages of the individuals listed below. (2 points)  
+
+Hint: look up `predict` in help.
+
+Note: remember to explain the output.
+
+
+```{r predictpassenger}
+predicttitanic <- titanic[c(13, 51), c("pclass", "name", "sex", "sibsp", "embarked", "Title")]
+predicttitanic
+
+predict(regres2Titanic, newdata = predicttitanic)
+```
+USING THE DATA GIVEN, THE MODEL ESTIMATES THE AGE OF A PERSON WITH THE GIVEN PCLASS, SEX, AND TITLE.
+
+
